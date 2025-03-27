@@ -17,21 +17,39 @@ function applyPixelStretch(imageSrc) {
       const canvas = document.getElementById("canvas");
       const ctx = canvas.getContext("2d");
 
-      canvas.width = img.width;
-      canvas.height = img.height;
+      // Set canvas size to 60-70% of viewport width
+      const viewportWidth = window.innerWidth;
+      const viewportHeight = window.innerHeight;
+      
+      let canvasWidth = viewportWidth * 0.65; // 65% of viewport
+      let canvasHeight = viewportHeight * 0.65; // 65% of viewport
 
-      // Draw the original image
-      ctx.drawImage(img, 0, 0);
+      // Maintain aspect ratio
+      const aspectRatio = img.width / img.height;
+      if (canvasWidth / aspectRatio > canvasHeight) {
+          canvasWidth = canvasHeight * aspectRatio;
+      } else {
+          canvasHeight = canvasWidth / aspectRatio;
+      }
+
+      canvas.width = canvasWidth;
+      canvas.height = canvasHeight;
+
+      // Clear previous drawing
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // Draw resized image
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
 
       // Define the vertical slice (center of image)
-      const sliceX = Math.floor(img.width / 2);
+      const sliceX = Math.floor(canvas.width / 2);
       const sliceWidth = 1;
 
       // Get that single vertical strip
-      const slice = ctx.getImageData(sliceX, 0, sliceWidth, img.height);
+      const slice = ctx.getImageData(sliceX, 0, sliceWidth, canvas.height);
 
       // Stretch that strip across the right half of the image
-      for (let x = sliceX; x < img.width; x++) {
+      for (let x = sliceX; x < canvas.width; x++) {
           ctx.putImageData(slice, x, 0);
       }
   };
