@@ -93,6 +93,29 @@ header {
     margin-left: 15px;
 }
 
+/* File Actions Container */
+.fileActions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* Restore Button */
+#restoreBtn {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid gray;
+  color: #E2AB10;
+  font-size: 0.9em;
+  padding: 5px 10px;
+  cursor: pointer;
+  transition: background 0.3s ease;
+  border-radius: 2px;
+}
+
+#restoreBtn:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
 /* Style the File Input */
 .fileCont input {
     background: rgba(255, 255, 255, 0.1);
