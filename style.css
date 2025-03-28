@@ -38,6 +38,7 @@ header {
 .headCont {
     display: flex;
     align-items: center;
+    
     width: 100%;
 }
 
@@ -97,9 +98,10 @@ header {
 /* File Actions Container */
 .fileActions {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 10px;
-  margin: 1px
+  gap: .5em;
+  
 }
 
 /* Restore Button */
