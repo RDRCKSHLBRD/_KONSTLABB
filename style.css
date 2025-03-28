@@ -37,6 +37,7 @@ header {
 /* Header Content */
 .headCont {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   width: 100%;
 }
@@ -54,7 +55,7 @@ header {
   white-space: nowrap;
 }
 
-/* Nav Grid (15 macros in a 3×5) */
+/* Nav Grid */
 .nav-grid {
   display: grid;
   grid-template-columns: repeat(5, 1fr);
@@ -69,13 +70,16 @@ header {
 .nav-grid button {
   background: rgba(255, 255, 255, 0.1);
   border: 1px solid gray;
-  color: #9AA28D;
-  font-size: 0.7em;
-  padding: 0.5em;
+  color: #48BBD8;
+  font-size: 0.6em;
+  padding: 0.6em;
   cursor: pointer;
   transition: background 0.3s ease;
   aspect-ratio: 1 / 1;
-  width: 100%;
+  width: 50px;
+  height: 20px;
+  gap: 5px;
+
   display: flex;
   align-items: center;
   justify-content: center;
@@ -83,6 +87,12 @@ header {
 }
 .nav-grid button:hover {
   background: #727268;
+}
+
+.processCont {
+  flex-wrap: wrap;
+  display: flex;
+  gap: 5px;
 }
 
 /* Processed Indicators */
@@ -118,7 +128,7 @@ header {
   gap: 0.5em;
 }
 
-/* Restore, Write, and Save Buttons */
+/* Buttons: Restore, Write, Save */
 #restoreBtn,
 #writeBtn,
 #saveBtn {
@@ -132,7 +142,6 @@ header {
 }
 #restoreBtn {
   color: #E2AB10;
-  margin-left: 0.3em;
 }
 #writeBtn {
   color: #428716;
@@ -177,29 +186,41 @@ main {
   margin-top: 100px;
   flex-grow: 1;
   display: flex;
-  /* no horizontal gap here, let .container + .sidebar handle it */
+  /* no horizontal gap here, .container + .sidebar handle it */
 }
 
-/* The .container fills the leftover space after we fix the sidebar (desktop) */
+/* Container w/ Canvas & SVG */
 .container {
-  width: 100%; /* We'll let the sidebar fix itself to the right */
+  width: 100%; 
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  /* We'll rely on the sidebar's fixed position for the 20% space on desktop */
 }
 
-.container input {
-  margin-bottom: 20px;
+/* The canvasWrapper is relative so the axis nodes can position absolutely. */
+.canvasWrapper {
+  position: relative;
 }
 
-/* Canvas & SVG */
+/* Canvas & SVG are bigger now (~95% usage). */
 canvas,
 #svgContainer {
-  max-width: 70vw;
-  max-height: 70vh;
+  max-width: 95vw;
+  max-height: 95vh;
   border: 1px solid white;
+}
+
+/* Draggable axis nodes */
+.axisNode {
+  position: absolute;
+  width: 7px;
+  height: 5px;
+ 
+  background-color: #A5AB87;
+
+  cursor: grab;
+  display: none; /* We'll show them once the image loads. */
 }
 
 /* Sidebar pinned to the right for desktop */
@@ -245,6 +266,33 @@ canvas,
   margin-bottom: 1em;
 }
 
+/* Overriding WebKit Slider for prime/bezier offsets */
+input[type='range'] {
+  -webkit-appearance: none;
+  width: 100%;
+  height: 2px;
+  background: #3DA3A8;
+  outline: none;
+  border-radius: 5px;
+  margin-bottom: 1em;
+  cursor: pointer;
+}
+input[type='range']::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 16px;
+  height: 16px;
+  background: #AAAA17;
+  border: 1px solid #444;
+  cursor: pointer;
+}
+input[type='range']::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  background: #AAAA17;
+  border: 1px solid #444;
+  cursor: pointer;
+}
+
 /* Footer */
 footer {
   position: fixed;
@@ -281,6 +329,7 @@ footer p {
     padding-bottom: 5px;
   }
   .nav-grid {
+    margin-top: 1em;
     grid-template-columns: repeat(3, 1fr);
     grid-template-rows: repeat(5, 1fr);
     width: 90%;
@@ -298,14 +347,17 @@ footer p {
   .container {
     width: 100%;
   }
-  /* On mobile, remove the fixed sidebar approach. Let it flow naturally. */
+  .canvasWrapper {
+    max-width: 95vw;
+    max-height: 70vh;
+  }
   .sidebar {
     position: static;
     top: auto;
     right: auto;
     width: 100%;
     height: auto;
-    margin-top: 1em;
+    margin-top: 3em;
   }
   canvas,
   #svgContainer {

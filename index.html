@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Pixel Stretch Effect - Expanded</title>
+  <title>Pixel Stretch Effect - Extended Math + Axis Controls</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
@@ -16,10 +16,10 @@
       <nav class="nav-grid">
         <button id="macro1">X</button>
         <button id="macro2">Y</button>
-        <button id="macro3">3</button>
-        <button id="macro4">4</button>
-        <button id="macro5">5</button>
-        <button id="macro6">6</button>
+        <button id="macro3">PrimeX</button>
+        <button id="macro4">ColorShift</button>
+        <button id="macro5">BezierX</button>
+        <button id="macro6">SVG Warp</button>
         <button id="macro7">7</button>
         <button id="macro8">8</button>
         <button id="macro9">9</button>
@@ -32,7 +32,11 @@
       </nav>
 
       <!-- Write & Indicators -->
-      <button id="writeBtn">Write</button>
+      <div class="processCont">
+        <button id="writeBtn">Write</button>
+        <button id="restoreBtn">Restore</button>
+        <button id="processBtn">Process</button>
+      </div>
       <div class="processedGrid">
         <div class="indicator" id="effectX"></div>
         <div class="indicator" id="effectY"></div>
@@ -40,7 +44,6 @@
 
       <!-- File Actions -->
       <div class="fileActions">
-        <button id="restoreBtn">Restore</button>
         <div class="fileCont">
           <input type="file" id="imageUpload" accept="image/*" />
         </div>
@@ -63,17 +66,25 @@
   <main>
     <!-- Main container (canvas & svg) -->
     <div class="container">
-      <canvas id="canvas"></canvas>
+      <!-- A wrapper to hold the canvas & axis nodes in position: relative. -->
+      <div class="canvasWrapper">
+        <canvas id="canvas"></canvas>
+        <!-- Draggable axis nodes -->
+        <div id="xNode" class="axisNode"></div>
+        <div id="yNode" class="axisNode"></div>
+      </div>
+
+      <!-- Our SVG container for vector mode -->
       <svg
         id="svgContainer"
-        width="500"
-        height="500"
-        viewBox="0 0 500 500"
+        width="800"
+        height="800"
+        viewBox="0 0 800 800"
         style="display: none;"
       >
         <path
           id="svgPath"
-          d="M 50 250 Q 250 50 450 250 T 850 250"
+          d="M 100 400 Q 400 100 700 400 T 1300 400"
           stroke="white"
           fill="none"
           stroke-width="2"
@@ -88,16 +99,16 @@
         <div class="controls-content">
           <p>Selected Macro: <span id="macroName">None</span></p>
 
-          <label for="primeOffset">Prime Offset:</label>
+          <label for="primeOffset">Prime Offset: <span id="primeVal">5</span></label>
           <input type="range" id="primeOffset" min="1" max="50" value="5" />
 
-          <label for="bezierIntensity">Bezier Intensity:</label>
+          <label for="bezierIntensity">Bezier Intensity: <span id="bezierVal">25</span></label>
           <input type="range" id="bezierIntensity" min="1" max="100" value="25" />
 
           <label for="colorShift">Color Shift:</label>
           <input type="checkbox" id="colorShift" />
+
           
-          <button id="processBtn">Process</button>
         </div>
       </details>
     </aside>
