@@ -123,11 +123,15 @@ header {
 }
 
 #saveBtn {
+    padding: 2px;
     background-color: #E0E2D7;
     color: #C5131A;
+    font-size: .8em;
 }
 
-#restoreBtn:hover, #writeBtn:hover, #saveBtn:hover {
+#restoreBtn:hover,
+#writeBtn:hover,
+#saveBtn:hover {
     background: rgba(255, 255, 255, 0.3);
 }
 
