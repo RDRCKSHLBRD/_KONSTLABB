@@ -30,61 +30,69 @@ let sliceY = null; // user-chosen horizontal axis
 function initAxisControls() {
   const xNode = document.getElementById("xNode");
   const yNode = document.getElementById("yNode");
-
   const canvas = document.getElementById("canvas");
-  const wrapper = document.querySelector(".canvasWrapper");
 
   // Show the nodes
   xNode.style.display = "block";
   yNode.style.display = "block";
 
-  // Default them to the center
+  // Default them to the canvas center
   sliceX = canvas.width / 2;
   sliceY = canvas.height / 2;
   positionAxisNodes();
 
-  xNode.addEventListener("mousedown", (e) => {
+  // X-node pointer events
+  xNode.addEventListener("pointerdown", onPointerDownX);
+  xNode.addEventListener("pointermove", onPointerMoveX);
+  xNode.addEventListener("pointerup", onPointerUpX);
+  
+  // Y-node pointer events
+  yNode.addEventListener("pointerdown", onPointerDownY);
+  yNode.addEventListener("pointermove", onPointerMoveY);
+  yNode.addEventListener("pointerup", onPointerUpY);
+
+  function onPointerDownX(e) {
     draggingX = true;
+    // Capture pointer so we keep receiving pointermove even if finger slides off the node
+    xNode.setPointerCapture(e.pointerId);
     e.stopPropagation();
-    document.addEventListener("mousemove", onMouseMoveX);
-    document.addEventListener("mouseup", onMouseUpX);
-  });
-
-  yNode.addEventListener("mousedown", (e) => {
-    draggingY = true;
-    e.stopPropagation();
-    document.addEventListener("mousemove", onMouseMoveY);
-    document.addEventListener("mouseup", onMouseUpY);
-  });
-
-  function onMouseMoveX(e) {
+    e.preventDefault();
+  }
+  function onPointerMoveX(e) {
     if (!draggingX) return;
     const rect = canvas.getBoundingClientRect();
-    // Convert screen X to canvas-based X
-    sliceX = e.clientX - rect.x;
+    sliceX = e.clientX - rect.left;
     sliceX = Math.max(0, Math.min(sliceX, canvas.width));
     positionAxisNodes();
+    e.preventDefault();
   }
-  function onMouseUpX() {
+  function onPointerUpX(e) {
     draggingX = false;
-    document.removeEventListener("mousemove", onMouseMoveX);
-    document.removeEventListener("mouseup", onMouseUpX);
+    xNode.releasePointerCapture(e.pointerId);
+    e.preventDefault();
   }
 
-  function onMouseMoveY(e) {
+  function onPointerDownY(e) {
+    draggingY = true;
+    yNode.setPointerCapture(e.pointerId);
+    e.stopPropagation();
+    e.preventDefault();
+  }
+  function onPointerMoveY(e) {
     if (!draggingY) return;
     const rect = canvas.getBoundingClientRect();
-    // Convert screen Y to canvas-based Y
-    sliceY = e.clientY - rect.y;
+    sliceY = e.clientY - rect.top;
     sliceY = Math.max(0, Math.min(sliceY, canvas.height));
     positionAxisNodes();
+    e.preventDefault();
   }
-  function onMouseUpY() {
+  function onPointerUpY(e) {
     draggingY = false;
-    document.removeEventListener("mousemove", onMouseMoveY);
-    document.removeEventListener("mouseup", onMouseUpY);
+    yNode.releasePointerCapture(e.pointerId);
+    e.preventDefault();
   }
 }
+
 
 function positionAxisNodes() {
   const xNode = document.getElementById("xNode");
