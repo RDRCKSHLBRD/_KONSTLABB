@@ -223,8 +223,8 @@ canvas,
 /* Draggable axis nodes */
 .axisNode {
   position: absolute;
-  width: 7px;
-  height: 5px;
+  width: 10px;
+  height: 10px;
 
   background-color: #A5AB87;
 
