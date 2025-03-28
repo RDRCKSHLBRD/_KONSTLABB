@@ -110,3 +110,20 @@ document.getElementById("restoreBtn").addEventListener("click", function() {
       loadImageToCanvas(document.getElementById("canvas").dataset.originalSrc);
   }
 });
+
+// Save File
+document.getElementById("saveBtn").addEventListener("click", function() {
+    const canvas = document.getElementById("canvas");
+    const fileName = document.getElementById("fileName").value || "pixel_stretch";
+    
+    const link = document.createElement("a");
+    link.download = fileName + ".png";
+    link.href = canvas.toDataURL("image/png");
+    link.click();
+});
+
+// Commit Changes to Buffer
+document.getElementById("writeBtn").addEventListener("click", function() {
+    const canvas = document.getElementById("canvas");
+    canvas.dataset.originalSrc = canvas.toDataURL(); // Save current state as new buffer
+});
