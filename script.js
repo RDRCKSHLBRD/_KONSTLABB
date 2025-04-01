@@ -242,11 +242,11 @@ function applyPrimeX() {
 }
 
 function generatePrimesUpTo(n) {
-  const sieve = new Array(n+1).fill(true);
+  const sieve = new Array(n + 1).fill(true);
   sieve[0] = false; sieve[1] = false;
   for (let i = 2; i <= Math.sqrt(n); i++) {
     if (sieve[i]) {
-      for (let j = i*i; j <= n; j += i) {
+      for (let j = i * i; j <= n; j += i) {
         sieve[j] = false;
       }
     }
@@ -277,8 +277,8 @@ function applyColorShift() {
       for (let i = 0; i < data.length; i += 4) {
         // swap R and G
         const r = data[i];
-        data[i] = data[i+1];
-        data[i+1] = r;
+        data[i] = data[i + 1];
+        data[i + 1] = r;
       }
       ctx.putImageData(imageData, 0, 0);
     }
@@ -314,9 +314,9 @@ function applyBezierX() {
           let destIndex = (x + shift) * 4;
           if (destIndex >= 0 && destIndex < rowSlice.length) {
             newRow[destIndex] = rowSlice[srcIndex];
-            newRow[destIndex+1] = rowSlice[srcIndex+1];
-            newRow[destIndex+2] = rowSlice[srcIndex+2];
-            newRow[destIndex+3] = rowSlice[srcIndex+3];
+            newRow[destIndex + 1] = rowSlice[srcIndex + 1];
+            newRow[destIndex + 2] = rowSlice[srcIndex + 2];
+            newRow[destIndex + 3] = rowSlice[srcIndex + 3];
           }
         }
         for (let i = 0; i < newRow.length; i++) {
@@ -461,20 +461,50 @@ document.getElementById("processBtn").addEventListener("click", () => {
   const bezValNum = parseInt(bezierIntensity.value, 10);
   const colorCheck = document.getElementById("colorShift").checked;
 
-// xy toggle 
-
-document.getElementById("toggleAxisOverlay").addEventListener("change", (e) => {
-  const display = e.target.checked ? "block" : "none";
-  document.getElementById("xNode").style.display = display;
-  document.getElementById("yNode").style.display = display;
-});
-
-
-
+  // xy toggle 
 
   alert(`Process with primeOffset=${primeValNum}, bezierIntensity=${bezValNum}, colorShift=${colorCheck}`);
   // Could chain macros:
   // applyPrimeX();
   // applyBezierX();
   // applyColorShift();
+});
+
+
+// === Toggle X/Y axis overlay visibility ===
+const toggleAxisOverlay = document.getElementById("toggleAxisOverlay");
+const xNode = document.getElementById("xNode");
+const yNode = document.getElementById("yNode");
+const modeSwitch = document.getElementById("modeSwitch");
+
+toggleAxisOverlay.addEventListener("change", (e) => {
+  const isRaster = modeSwitch.value === "raster";
+  const showAxes = e.target.checked;
+
+  if (isRaster) {
+    xNode.style.display = showAxes ? "block" : "none";
+    yNode.style.display = showAxes ? "block" : "none";
+  }
+});
+
+// === Mode switch behavior (SVG ↔ Raster) ===
+modeSwitch.addEventListener("change", () => {
+  const mode = modeSwitch.value;
+
+  if (mode === "raster") {
+    document.getElementById("canvas").style.display = "block";
+    document.getElementById("svgContainer").style.display = "none";
+
+    // Respect toggle state when entering raster mode
+    const showAxes = toggleAxisOverlay.checked;
+    xNode.style.display = showAxes ? "block" : "none";
+    yNode.style.display = showAxes ? "block" : "none";
+  } else if (mode === "svg") {
+    document.getElementById("canvas").style.display = "none";
+    document.getElementById("svgContainer").style.display = "block";
+
+    // Always hide raster-specific UI in SVG mode
+    xNode.style.display = "none";
+    yNode.style.display = "none";
+  }
 });

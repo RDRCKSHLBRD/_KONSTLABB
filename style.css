@@ -315,6 +315,12 @@ canvas,
   margin-bottom: 1em;
 }
 
+.toolTitle {
+  font-size: 1em;
+  font-weight: 200;
+}
+
+
 .toolDisplay {
   border: 1px solid gray;
   padding: 1em;
