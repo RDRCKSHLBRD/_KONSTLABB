@@ -1,6 +1,5 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -22,12 +21,12 @@
         <button id="macro4">ColorShift</button>
         <button id="macro5">BezierX</button>
         <button id="macro6">SVG Warp</button>
-        <button id="macro7">7</button>
-        <button id="macro8">8</button>
-        <button id="macro9">9</button>
-        <button id="macro10">10</button>
-        <button id="macro11">11</button>
-        <button id="macro12">12</button>
+        <button id="macro7">EdgeDetect</button>
+        <button id="macro8">OffsetSum</button>
+        <button id="macro9">OffsetDiff</button>
+        <button id="macro10">Double</button>
+        <button id="macro11">QuadTree</button>
+        <button id="macro12">BezierY</button>
         <button id="macro13">13</button>
         <button id="macro14">14</button>
         <button id="macro15">15</button>
@@ -72,19 +71,18 @@
       <div class="canvasWrapper">
         <canvas id="canvas"></canvas>
         <!-- Draggable axis nodes -->
-        <!-- X/Y Axis Nodes with Handles -->
         <div id="xNode" class="axisNode">
           <div class="axisHandle xHandle"></div>
         </div>
         <div id="yNode" class="axisNode">
           <div class="axisHandle yHandle"></div>
         </div>
-
       </div>
 
       <!-- Our SVG container for vector mode -->
       <svg id="svgContainer" width="800" height="800" viewBox="0 0 800 800" style="display: none;">
-        <path id="svgPath" d="M 100 400 Q 400 100 700 400 T 1300 400" stroke="white" fill="none" stroke-width="2" />
+        <path id="svgPath" d="M 100 400 Q 400 100 700 400 T 1300 400" 
+              stroke="white" fill="none" stroke-width="2" />
       </svg>
     </div>
 
@@ -105,6 +103,7 @@
           <input type="checkbox" id="colorShift" />
         </div>
       </details>
+
       <div class="toolDisplay">
         <label for="toggleAxisOverlay">
           <div class="toolTitle">Tools</div>
@@ -112,7 +111,14 @@
           X/Y
         </label>
       </div>
-      
+
+      <!-- We'll show region results from "EdgeDetect" (macro7) here -->
+      <details id="regionDetails" style="display: none;">
+        <summary>Detected Regions</summary>
+        <div id="regionList" class="controls-content">
+          <!-- Populated in script.js -->
+        </div>
+      </details>
     </aside>
   </main>
 
@@ -124,5 +130,4 @@
 
   <script src="script.js"></script>
 </body>
-
 </html>
