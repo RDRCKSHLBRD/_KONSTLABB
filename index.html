@@ -1,11 +1,13 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>KONSTLABB</title>
   <link rel="stylesheet" href="style.css" />
 </head>
+
 <body>
   <!-- Header Section -->
   <header>
@@ -47,7 +49,7 @@
         <div class="fileCont">
           <input type="file" id="imageUpload" accept="image/*" />
         </div>
-        <input type="text" id="fileName" placeholder="Enter filename"/>
+        <input type="text" id="fileName" placeholder="Enter filename" />
         <button id="saveBtn">Save File</button>
       </div>
 
@@ -70,25 +72,19 @@
       <div class="canvasWrapper">
         <canvas id="canvas"></canvas>
         <!-- Draggable axis nodes -->
-        <div id="xNode" class="axisNode"></div>
-        <div id="yNode" class="axisNode"></div>
+        <!-- X/Y Axis Nodes with Handles -->
+        <div id="xNode" class="axisNode">
+          <div class="axisHandle xHandle"></div>
+        </div>
+        <div id="yNode" class="axisNode">
+          <div class="axisHandle yHandle"></div>
+        </div>
+
       </div>
 
       <!-- Our SVG container for vector mode -->
-      <svg
-        id="svgContainer"
-        width="800"
-        height="800"
-        viewBox="0 0 800 800"
-        style="display: none;"
-      >
-        <path
-          id="svgPath"
-          d="M 100 400 Q 400 100 700 400 T 1300 400"
-          stroke="white"
-          fill="none"
-          stroke-width="2"
-        />
+      <svg id="svgContainer" width="800" height="800" viewBox="0 0 800 800" style="display: none;">
+        <path id="svgPath" d="M 100 400 Q 400 100 700 400 T 1300 400" stroke="white" fill="none" stroke-width="2" />
       </svg>
     </div>
 
@@ -100,17 +96,22 @@
           <p>Selected Macro: <span id="macroName">None</span></p>
 
           <label for="primeOffset">Prime Offset: <span id="primeVal">5</span></label>
-          <input type="range" id="primeOffset" min="1" max="50" value="5" />
+          <input type="range" id="primeOffset" min="1" max="100" value="5" />
 
           <label for="bezierIntensity">Bezier Intensity: <span id="bezierVal">25</span></label>
-          <input type="range" id="bezierIntensity" min="1" max="100" value="25" />
+          <input type="range" id="bezierIntensity" min="1" max="500" value="25" />
 
           <label for="colorShift">Color Shift:</label>
           <input type="checkbox" id="colorShift" />
-
-          
         </div>
       </details>
+      <div class="toolDisplay">
+        <label for="toggleAxisOverlay">
+          <input type="checkbox" id="toggleAxisOverlay" checked />
+          Show Axis Handles
+        </label>
+      </div>
+      
     </aside>
   </main>
 
@@ -122,4 +123,5 @@
 
   <script src="script.js"></script>
 </body>
+
 </html>

@@ -200,6 +200,7 @@ main {
 
 /* Container w/ Canvas & SVG */
 .container {
+  margin-top: 3em;
   width: 100%;
   display: flex;
   flex-direction: column;
@@ -223,8 +224,8 @@ canvas,
 /* Draggable axis nodes */
 .axisNode {
   position: absolute;
-  width: 10px;
-  height: 10px;
+  width: 1px;
+  height: 1px;
 
   background-color: #A5AB87;
 
@@ -238,6 +239,32 @@ canvas,
   /* Prevent text selection on some browsers */
   -webkit-user-select: none;
 }
+
+.axisHandle {
+  width: 36px;
+  height: 36px;
+  background-color: #B4B5A9;
+  border: 1px solid #444;
+  
+  position: absolute;
+  z-index: 5;
+  touch-action: none;
+}
+
+.xHandle {
+  top: 0; /* ⬅️ handle sits at top of vertical line */
+  left: 50%;
+  transform: translateX(-50%);
+  cursor: col-resize;
+}
+
+.yHandle {
+  left: 0; /* ⬅️ handle sits at left of horizontal line */
+  top: 50%;
+  transform: translateY(-50%);
+  cursor: row-resize;
+}
+
 
 
 /* Sidebar pinned to the right for desktop */
@@ -286,6 +313,12 @@ canvas,
 .controls-content input[type="range"],
 .controls-content input[type="checkbox"] {
   margin-bottom: 1em;
+}
+
+.toolDisplay {
+  border: 1px solid gray;
+  padding: 1em;
+  margin: .5em;
 }
 
 /* Overriding WebKit Slider for prime/bezier offsets */

@@ -27,84 +27,85 @@ let draggingY = false;
 let sliceX = null; // user-chosen vertical axis
 let sliceY = null; // user-chosen horizontal axis
 
-function initAxisControls() {
+
+function positionAxisNodes() {
   const xNode = document.getElementById("xNode");
   const yNode = document.getElementById("yNode");
+
+  // Vertical X line (centered at sliceX)
+  xNode.style.left = `${sliceX - 0.5}px`; // 1px width assumed
+  xNode.style.top = `0`;
+  xNode.style.height = `100%`;
+  xNode.style.width = `1px`; // optional clarity
+
+  // Horizontal Y line (centered at sliceY)
+  yNode.style.top = `${sliceY - 0.5}px`;
+  yNode.style.left = `0`;
+  yNode.style.width = `100%`;
+  yNode.style.height = `1px`; // optional clarity
+}
+
+
+
+
+
+function initAxisControls() {
+  const xHandle = document.querySelector(".xHandle");
+  const yHandle = document.querySelector(".yHandle");
+
+  // Show the axis container
+  document.getElementById("xNode").style.display = "block";
+  document.getElementById("yNode").style.display = "block";
+
   const canvas = document.getElementById("canvas");
-
-  // Show the nodes
-  xNode.style.display = "block";
-  yNode.style.display = "block";
-
-  // Default them to the canvas center
   sliceX = canvas.width / 2;
   sliceY = canvas.height / 2;
   positionAxisNodes();
 
-  // X-node pointer events
-  xNode.addEventListener("pointerdown", onPointerDownX);
-  xNode.addEventListener("pointermove", onPointerMoveX);
-  xNode.addEventListener("pointerup", onPointerUpX);
-  
-  // Y-node pointer events
-  yNode.addEventListener("pointerdown", onPointerDownY);
-  yNode.addEventListener("pointermove", onPointerMoveY);
-  yNode.addEventListener("pointerup", onPointerUpY);
-
-  function onPointerDownX(e) {
+  xHandle.addEventListener("pointerdown", (e) => {
     draggingX = true;
-    // Capture pointer so we keep receiving pointermove even if finger slides off the node
-    xNode.setPointerCapture(e.pointerId);
-    e.stopPropagation();
+    xHandle.setPointerCapture(e.pointerId);
     e.preventDefault();
-  }
-  function onPointerMoveX(e) {
+    e.stopPropagation();
+  });
+  xHandle.addEventListener("pointermove", (e) => {
     if (!draggingX) return;
     const rect = canvas.getBoundingClientRect();
     sliceX = e.clientX - rect.left;
     sliceX = Math.max(0, Math.min(sliceX, canvas.width));
     positionAxisNodes();
     e.preventDefault();
-  }
-  function onPointerUpX(e) {
+  });
+  xHandle.addEventListener("pointerup", (e) => {
     draggingX = false;
-    xNode.releasePointerCapture(e.pointerId);
+    xHandle.releasePointerCapture(e.pointerId);
     e.preventDefault();
-  }
+  });
 
-  function onPointerDownY(e) {
+  yHandle.addEventListener("pointerdown", (e) => {
     draggingY = true;
-    yNode.setPointerCapture(e.pointerId);
-    e.stopPropagation();
+    yHandle.setPointerCapture(e.pointerId);
     e.preventDefault();
-  }
-  function onPointerMoveY(e) {
+    e.stopPropagation();
+  });
+  yHandle.addEventListener("pointermove", (e) => {
     if (!draggingY) return;
     const rect = canvas.getBoundingClientRect();
     sliceY = e.clientY - rect.top;
     sliceY = Math.max(0, Math.min(sliceY, canvas.height));
     positionAxisNodes();
     e.preventDefault();
-  }
-  function onPointerUpY(e) {
+  });
+  yHandle.addEventListener("pointerup", (e) => {
     draggingY = false;
-    yNode.releasePointerCapture(e.pointerId);
+    yHandle.releasePointerCapture(e.pointerId);
     e.preventDefault();
-  }
+  });
 }
 
 
-function positionAxisNodes() {
-  const xNode = document.getElementById("xNode");
-  const yNode = document.getElementById("yNode");
-  xNode.style.left = `${sliceX - 8}px`; // center node
-  xNode.style.top = `0px`;
-  xNode.style.height = `100%`;
 
-  yNode.style.top = `${sliceY - 8}px`;
-  yNode.style.left = `0px`;
-  yNode.style.width = `100%`;
-}
+
 
 /***********************************************
  * FILE LOADING & CANVAS DRAW
@@ -459,6 +460,17 @@ document.getElementById("processBtn").addEventListener("click", () => {
   const primeValNum = parseInt(primeOffset.value, 10);
   const bezValNum = parseInt(bezierIntensity.value, 10);
   const colorCheck = document.getElementById("colorShift").checked;
+
+// xy toggle 
+
+document.getElementById("toggleAxisOverlay").addEventListener("change", (e) => {
+  const display = e.target.checked ? "block" : "none";
+  document.getElementById("xNode").style.display = display;
+  document.getElementById("yNode").style.display = display;
+});
+
+
+
 
   alert(`Process with primeOffset=${primeValNum}, bezierIntensity=${bezValNum}, colorShift=${colorCheck}`);
   // Could chain macros:
