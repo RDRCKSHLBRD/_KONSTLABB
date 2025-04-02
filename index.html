@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>KONSTLABB</title>
   <link rel="stylesheet" href="style.css" />
 </head>
@@ -51,6 +51,7 @@
     <aside class="leftSidebar">
       <details open>
         <summary>Macros</summary>
+        <!-- 25 Macro Slots -->
         <nav class="nav-grid">
           <button id="macro1">X</button>
           <button id="macro2">Y</button>
@@ -67,16 +68,27 @@
           <button id="macro13">13</button>
           <button id="macro14">14</button>
           <button id="macro15">15</button>
+          <button id="macro16">16</button>
+          <button id="macro17">17</button>
+          <button id="macro18">18</button>
+          <button id="macro19">19</button>
+          <button id="macro20">20</button>
+          <button id="macro21">21</button>
+          <button id="macro22">22</button>
+          <button id="macro23">23</button>
+          <button id="macro24">24</button>
+          <button id="macro25">25</button>
         </nav>
       </details>
     </aside>
 
     <!-- Main container (canvas & svg) -->
     <div class="container">
-      <!-- A wrapper to hold the canvas & axis nodes in position: relative. -->
       <div class="canvasWrapper">
+        <!-- Raster Canvas -->
         <canvas id="canvas"></canvas>
-        <!-- Draggable axis nodes -->
+
+        <!-- Draggable X/Y axis nodes -->
         <div id="xNode" class="axisNode">
           <div class="axisHandle xHandle"></div>
         </div>
@@ -86,9 +98,20 @@
       </div>
 
       <!-- Our SVG container for vector mode -->
-      <svg id="svgContainer" width="800" height="800" viewBox="0 0 800 800" style="display: none;">
-        <path id="svgPath" d="M 100 400 Q 400 100 700 400 T 1300 400"
-              stroke="white" fill="none" stroke-width="2" />
+      <svg
+        id="svgContainer"
+        width="800"
+        height="800"
+        viewBox="0 0 800 800"
+        style="display: none;"
+      >
+        <path
+          id="svgPath"
+          d="M 100 400 Q 400 100 700 400 T 1300 400"
+          stroke="white"
+          fill="none"
+          stroke-width="2"
+        />
       </svg>
     </div>
 
@@ -99,18 +122,24 @@
         <div class="controls-content">
           <p>Selected Macro: <span id="macroName">None</span></p>
 
-          <label for="primeOffset">Prime Offset: <span id="primeVal">5</span></label>
+          <label for="primeOffset">
+            Prime Offset: <span id="primeVal">5</span>
+          </label>
           <input type="range" id="primeOffset" min="1" max="100" value="5" />
 
-          <label for="bezierIntensity">Bezier Intensity: <span id="bezierVal">25</span></label>
+          <label for="bezierIntensity">
+            Bezier Intensity: <span id="bezierVal">25</span>
+          </label>
           <input type="range" id="bezierIntensity" min="1" max="500" value="25" />
 
-          <!-- NEW: QuadTree Resolution Slider -->
-          <label for="quadTreeDepth">QuadTree Resolution: <span id="quadTreeVal">6</span></label>
+          <label for="quadTreeDepth">
+            QuadTree Resolution: <span id="quadTreeVal">6</span>
+          </label>
           <input type="range" id="quadTreeDepth" min="1" max="10" value="6" />
 
-          <!-- NEW: Edge Modulus Slider (used by EdgeDetect) -->
-          <label for="edgeModulus">Edge Modulus: <span id="edgeModVal">80</span></label>
+          <label for="edgeModulus">
+            Edge Modulus: <span id="edgeModVal">80</span>
+          </label>
           <input type="range" id="edgeModulus" min="1" max="255" value="80" />
 
           <label for="colorShift">Color Shift:</label>
@@ -118,6 +147,7 @@
         </div>
       </details>
 
+      <!-- Tools panel (Axis overlay, etc.) -->
       <div class="toolDisplay">
         <label for="toggleAxisOverlay">
           <div class="toolTitle">Tools</div>
@@ -126,11 +156,11 @@
         </label>
       </div>
 
-      <!-- We'll show region results from "EdgeDetect" here if desired -->
+      <!-- Region results from EdgeDetect -->
       <details id="regionDetails" style="display: none;">
         <summary>Detected Regions</summary>
         <div id="regionList" class="controls-content">
-          <!-- Populated in script.js -->
+          <!-- region UI injected here -->
         </div>
       </details>
     </aside>
@@ -142,6 +172,7 @@
     <p class="credit">Roderick Shoolbraid</p>
   </footer>
 
+  <!-- Main Script -->
   <script src="script.js"></script>
 </body>
 </html>
