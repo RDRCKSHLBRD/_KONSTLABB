@@ -120,30 +120,55 @@
       <details open>
         <summary>Advanced Controls</summary>
         <div class="controls-content">
-          <p>Selected Macro: <span id="macroName">None</span></p>
+          <!-- Section: Macro Indicator -->
+          <div class="macro-section" id="macroInfo">
+            <p>Selected Macro: <span id="macroName">None</span></p>
+          </div>
 
-          <label for="primeOffset">
-            Prime Offset: <span id="primeVal">5</span>
-          </label>
-          <input type="range" id="primeOffset" min="1" max="100" value="5" />
+          <!-- PrimeX -->
+          <div class="macro-section" id="primeControls">
+            <label for="primeOffset">Prime Offset: <span id="primeVal">5</span></label>
+            <input type="range" id="primeOffset" min="1" max="100" value="5" />
+          </div>
 
-          <label for="bezierIntensity">
-            Bezier Intensity: <span id="bezierVal">25</span>
-          </label>
-          <input type="range" id="bezierIntensity" min="1" max="500" value="25" />
+          <!-- Bezier -->
+          <div class="macro-section" id="bezierControls">
+            <label for="bezierIntensity">Bezier Intensity: <span id="bezierVal">25</span></label>
+            <input type="range" id="bezierIntensity" min="1" max="500" value="25" />
+          </div>
 
-          <label for="quadTreeDepth">
-            QuadTree Resolution: <span id="quadTreeVal">6</span>
-          </label>
-          <input type="range" id="quadTreeDepth" min="1" max="10" value="6" />
+          <!-- QuadTree -->
+          <div class="macro-section" id="quadTreeControls">
+            <label for="quadTreeDepth">QuadTree Resolution: <span id="quadTreeVal">6</span></label>
+            <input type="range" id="quadTreeDepth" min="1" max="10" value="6" />
+          </div>
 
-          <label for="edgeModulus">
-            Edge Modulus: <span id="edgeModVal">80</span>
-          </label>
-          <input type="range" id="edgeModulus" min="1" max="255" value="80" />
+          <!-- Edge Detection -->
+          <div class="macro-section" id="edgeControls">
+            <label for="edgeModulus">Edge Modulus: <span id="edgeModVal">80</span></label>
+            <input type="range" id="edgeModulus" min="1" max="255" value="80" />
 
-          <label for="colorShift">Color Shift:</label>
-          <input type="checkbox" id="colorShift" />
+            <label for="edgeAlgo">Edge Algorithm:</label>
+            <select id="edgeAlgo">
+              <option value="sobel">Sobel</option>
+              <option value="prewitt">Prewitt</option>
+              <option value="laplacian">Laplacian</option>
+            </select>
+
+            <label>
+              <input type="checkbox" id="blurToggle" />
+              Apply Gaussian Blur
+            </label>
+
+            <label for="minArea">Min Region Area: <span id="minAreaVal">5</span></label>
+            <input type="range" id="minArea" min="1" max="100" value="5" />
+          </div>
+
+          <!-- Color Shift -->
+          <div class="macro-section" id="colorControls">
+            <label for="colorShift">Color Shift:</label>
+            <input type="checkbox" id="colorShift" />
+          </div>
         </div>
       </details>
 

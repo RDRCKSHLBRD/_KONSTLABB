@@ -396,6 +396,54 @@ footer p {
   opacity: 0.6;
 }
 
+/* === Macro Sections === */
+.macro-section {
+  border: 1px solid #444;
+  padding: 0.5em;
+  margin-bottom: 1em;
+  background-color: rgba(255, 255, 255, 0.02);
+}
+
+/* Optional themed styling by macro type */
+#macroInfo       { border-color: #727268; background: #1e1e1e; color: #bbb; }
+#primeControls   { border-color: #9AA28D; }
+#bezierControls  { border-color: #48BBD8; }
+#quadTreeControls{ border-color: #AAAA17; }
+#edgeControls    { border-color: #C5131A; }
+#colorControls   { border-color: #CCD1B9; }
+
+#edgeAlgo, #minArea {
+  margin-top: 0.5em;
+}
+
+/* Edge Algorithm select styling */
+#edgeAlgo {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid #555;
+  color: #CCD1B9;
+  padding: 5px;
+  width: 100%;
+  margin-bottom: 0.5em;
+}
+
+/* Min Area slider label styling */
+label[for="minArea"] {
+  margin-top: 0.5em;
+}
+
+/* Region list items */
+.regionItem {
+  cursor: pointer;
+  padding: 3px;
+  margin: 2px 0;
+  font-size: 0.8em;
+  transition: background 0.2s ease;
+}
+
+.regionItem:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
 /* RESPONSIVE FOR MOBILE */
 @media (max-width: 768px) {
   header {

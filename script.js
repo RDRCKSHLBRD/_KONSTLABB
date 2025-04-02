@@ -287,18 +287,18 @@ function applyBezierX() {
           const srcIdx = x * 4;
           const dstIdx = (x + shift) * 4;
           if (dstIdx >= 0 && dstIdx < rowSlice.length) {
-            newRow[dstIdx] = rowSlice[srcIdx];
+            newRow[dstIdx]   = rowSlice[srcIdx];
             newRow[dstIdx+1] = rowSlice[srcIdx+1];
             newRow[dstIdx+2] = rowSlice[srcIdx+2];
             newRow[dstIdx+3] = rowSlice[srcIdx+3];
           }
         }
+        // Copy newRow back into data
         for (let i = 0; i < newRow.length; i++) {
           data[rowStart + i] = newRow[i];
         }
       }
     }
-
     ctx.putImageData(imageData, 0, 0);
     pushState(canvas.toDataURL());
   };
@@ -324,6 +324,10 @@ let globalRegions = [];
 
 function applyEdgeDetection() {
   const thresholdVal = parseInt(document.getElementById("edgeModulus").value, 10) || 80;
+  const edgeType = document.getElementById("edgeAlgo").value;
+  const applyBlur = document.getElementById("blurToggle").checked;
+  const minArea = parseInt(document.getElementById("minArea").value, 10);
+  
   const canvas = document.getElementById("canvas");
   if (!canvas.dataset.originalSrc) return;
 
@@ -336,19 +340,47 @@ function applyEdgeDetection() {
     const { width, height } = canvas;
     const imageData = ctx.getImageData(0, 0, width, height);
 
-    // 1) Sobel
-    const edges = sobelEdgeDetection(imageData);
+    // 1) Convert to grayscale
+    const gray = new Float32Array(width * height);
+    const d = imageData.data;
+    for (let i = 0; i < d.length; i += 4) {
+      const r = d[i], g = d[i+1], b = d[i+2];
+      gray[i / 4] = 0.299*r + 0.587*g + 0.114*b;
+    }
 
-    // 2) Threshold => 0=Edge, 1=Inside
+    // 2) Apply Gaussian blur if enabled
+    let inputGray = gray;
+    if (applyBlur) {
+      inputGray = gaussianBlur(gray, width, height);
+    }
+
+    // 3) Choose edge detection algorithm
+    let edges;
+    if (edgeType === 'sobel') {
+      edges = sobelFromGray(inputGray, width, height);
+    } else if (edgeType === 'prewitt') {
+      edges = prewittFromGray(inputGray, width, height);
+    } else if (edgeType === 'laplacian') {
+      edges = laplacianFromGray(inputGray, width, height);
+    }
+
+    // 4) Threshold => 0=Edge, 1=Inside
     const binaryMask = new Uint8Array(width * height);
     for (let i = 0; i < edges.length; i++) {
       binaryMask[i] = edges[i] > thresholdVal ? 0 : 1;
     }
 
-    // 3) Connected Components => label
+    // 5) Connected Components => label
     const { labels, numLabels } = labelConnectedComponents(binaryMask, width, height);
 
-    // 4) Color overlay for visual
+    // 6) Build region info + store globally
+    globalLabelArray = labels;
+    globalRegions = buildRegionInfo(labels, numLabels, width);
+
+    // 7) Filter small regions
+    globalRegions = globalRegions.filter(r => r.area >= minArea);
+
+    // 8) Color overlay for visual
     const outData = ctx.createImageData(width, height);
     for (let i = 0; i < labels.length; i++) {
       const label = labels[i];
@@ -360,39 +392,40 @@ function applyEdgeDetection() {
         outData.data[idx4+2] = 0;
         outData.data[idx4+3] = 255;
       } else {
-        const seed = label * 13;
-        outData.data[idx4]   = (seed * 53) % 256;
-        outData.data[idx4+1] = (seed * 31) % 256;
-        outData.data[idx4+2] = (seed * 97) % 256;
-        outData.data[idx4+3] = 255;
+        // Check if region is too small
+        const region = globalRegions.find(r => r.id === label);
+        if (!region) {
+          // Semi-transparent black for filtered out
+          outData.data[idx4]   = 0;
+          outData.data[idx4+1] = 0;
+          outData.data[idx4+2] = 0;
+          outData.data[idx4+3] = 50;
+        } else {
+          const seed = label * 13;
+          outData.data[idx4]   = (seed * 53) % 256;
+          outData.data[idx4+1] = (seed * 31) % 256;
+          outData.data[idx4+2] = (seed * 97) % 256;
+          outData.data[idx4+3] = 255;
+        }
       }
     }
     ctx.putImageData(outData, 0, 0);
 
-    // 5) Build region info + store globally
-    globalLabelArray = labels;
-    globalRegions = buildRegionInfo(labels, numLabels, width);
-
-    // 6) Show region listing
+    // 9) Show region listing
     displayRegionList(globalRegions);
 
-    // 7) Update state
+    // 10) Update state
     pushState(canvas.toDataURL());
+    
+    // 11) Update minAreaVal display
+    document.getElementById("minAreaVal").textContent = minArea;
   };
 }
 
-function sobelEdgeDetection(imageData) {
-  const { width, height, data } = imageData;
-  const gray = new Float32Array(width * height);
-  for (let i = 0; i < data.length; i += 4) {
-    const r = data[i], g = data[i+1], b = data[i+2];
-    gray[i/4] = 0.299*r + 0.587*g + 0.114*b;
-  }
-
+function sobelFromGray(gray, width, height) {
   const out = new Float32Array(width * height);
   const kx = [[-1,0,1],[-2,0,2],[-1,0,1]];
   const ky = [[-1,-2,-1],[0,0,0],[1,2,1]];
-
   for (let y = 1; y < height-1; y++) {
     for (let x = 1; x < width-1; x++) {
       let gx=0, gy=0;
@@ -403,8 +436,75 @@ function sobelEdgeDetection(imageData) {
           gy += ky[yy+1][xx+1] * val;
         }
       }
-      const mag = Math.sqrt(gx*gx + gy*gy);
-      out[y*width + x] = mag;
+      out[y*width + x] = Math.sqrt(gx*gx + gy*gy);
+    }
+  }
+  return out;
+}
+
+function prewittFromGray(gray, width, height) {
+  const out = new Float32Array(width * height);
+  const kx = [[-1,0,1],[-1,0,1],[-1,0,1]];
+  const ky = [[-1,-1,-1],[0,0,0],[1,1,1]];
+  for (let y = 1; y < height-1; y++) {
+    for (let x = 1; x < width-1; x++) {
+      let gx=0, gy=0;
+      for (let yy = -1; yy <= 1; yy++) {
+        for (let xx = -1; xx <= 1; xx++) {
+          const val = gray[(y+yy)*width + (x+xx)];
+          gx += kx[yy+1][xx+1] * val;
+          gy += ky[yy+1][xx+1] * val;
+        }
+      }
+      out[y*width + x] = Math.sqrt(gx*gx + gy*gy);
+    }
+  }
+  return out;
+}
+
+function laplacianFromGray(gray, width, height) {
+  const out = new Float32Array(width * height);
+  const kernel = [[0,1,0],[1,-4,1],[0,1,0]];
+  for (let y = 1; y < height-1; y++) {
+    for (let x = 1; x < width-1; x++) {
+      let acc = 0;
+      for (let yy = -1; yy <= 1; yy++) {
+        for (let xx = -1; xx <= 1; xx++) {
+          const val = gray[(y+yy)*width + (x+xx)];
+          acc += kernel[yy+1][xx+1] * val;
+        }
+      }
+      out[y*width + x] = Math.abs(acc);
+    }
+  }
+  return out;
+}
+
+function gaussianBlur(gray, width, height) {
+  const out = new Float32Array(width * height);
+  const kernel = [1, 4, 6, 4, 1];
+  const kSum = 16;
+  const temp = new Float32Array(width * height);
+
+  // horizontal pass
+  for (let y = 0; y < height; y++) {
+    for (let x = 2; x < width-2; x++) {
+      let val = 0;
+      for (let k = -2; k <= 2; k++) {
+        val += kernel[k+2] * gray[y*width + (x+k)];
+      }
+      temp[y*width + x] = val / kSum;
+    }
+  }
+
+  // vertical pass
+  for (let y = 2; y < height-2; y++) {
+    for (let x = 0; x < width; x++) {
+      let val = 0;
+      for (let k = -2; k <= 2; k++) {
+        val += kernel[k+2] * temp[(y+k)*width + x];
+      }
+      out[y*width + x] = val / kSum;
     }
   }
   return out;
@@ -616,12 +716,12 @@ function applyDoubling() {
  ***********************************************/
 class QuadTreeNode {
   constructor(x, y, w, h) {
-    this.x = x; 
+    this.x = x;
     this.y = y;
     this.w = w;
     this.h = h;
     this.isLeaf = false;
-    this.avgColor = [0,0,0,255];
+    this.avgColor = [0, 0, 0, 255];
     this.children = [];
   }
 }
@@ -639,7 +739,7 @@ function applyQuadTree() {
     ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
     const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
 
-    const threshold = 800; // fixed or could be a slider
+    const threshold = 800; // Could be another user parameter
     const root = buildQuadTree(imageData, 0, 0, canvas.width, canvas.height, threshold, maxDepth);
     drawQuadTreeLeaves(ctx, root);
 
@@ -647,31 +747,43 @@ function applyQuadTree() {
   };
 }
 
-function buildQuadTree(imageData, x, y, w, h, threshold, maxDepth, depth=0) {
+/**
+ * Recursively build a quadtree given an imageData region
+ */
+function buildQuadTree(imageData, x, y, w, h, threshold, maxDepth, depth = 0) {
   const node = new QuadTreeNode(x, y, w, h);
-  if (w<2 || h<2 || depth>=maxDepth) {
+
+  // Stop subdividing if region too small or too deep
+  if (w < 2 || h < 2 || depth >= maxDepth) {
     node.isLeaf = true;
     node.avgColor = computeRegionAverage(imageData, x, y, w, h);
     return node;
   }
 
+  // Compute variance to decide if we subdivide
   const variance = computeRegionVariance(imageData, x, y, w, h);
   if (variance < threshold) {
     node.isLeaf = true;
     node.avgColor = computeRegionAverage(imageData, x, y, w, h);
   } else {
-    const halfW = Math.floor(w/2), halfH = Math.floor(h/2);
+    const halfW = Math.floor(w / 2);
+    const halfH = Math.floor(h / 2);
+
+    // child #1
     node.children.push(
-      buildQuadTree(imageData, x,       y,       halfW,  halfH,  threshold, maxDepth, depth+1)
+      buildQuadTree(imageData, x,         y,         halfW,  halfH,  threshold, maxDepth, depth + 1)
     );
+    // child #2
     node.children.push(
-      buildQuadTree(imageData, x+halfW, y,       w-halfW, halfH, threshold, maxDepth, depth+1)
+      buildQuadTree(imageData, x + halfW, y,         w - halfW, halfH, threshold, maxDepth, depth + 1)
     );
+    // child #3
     node.children.push(
-      buildQuadTree(imageData, x,       y+halfH, halfW,  h-halfH, threshold, maxDepth, depth+1)
+      buildQuadTree(imageData, x,         y + halfH, halfW,  h - halfH, threshold, maxDepth, depth + 1)
     );
+    // child #4
     node.children.push(
-      buildQuadTree(imageData, x+halfW, y+halfH, w-halfW, h-halfH, threshold, maxDepth, depth+1)
+      buildQuadTree(imageData, x + halfW, y + halfH, w - halfW, h - halfH, threshold, maxDepth, depth + 1)
     );
   }
   return node;
@@ -681,30 +793,32 @@ function computeRegionVariance(imageData, x, y, w, h) {
   const avg = computeRegionAverage(imageData, x, y, w, h);
   let sumSq = 0;
   const { width, data } = imageData;
-  for (let row=0; row<h; row++) {
-    for (let col=0; col<w; col++) {
-      const idx = ((y+row)*width + (x+col))*4;
-      const dr = data[idx]   - avg[0];
-      const dg = data[idx+1] - avg[1];
-      const db = data[idx+2] - avg[2];
-      sumSq += (dr*dr + dg*dg + db*db);
+
+  for (let row = 0; row < h; row++) {
+    for (let col = 0; col < w; col++) {
+      const idx = ((y + row) * width + (x + col)) * 4;
+      const dr = data[idx]     - avg[0];
+      const dg = data[idx + 1] - avg[1];
+      const db = data[idx + 2] - avg[2];
+      sumSq += (dr * dr + dg * dg + db * db);
     }
   }
-  return sumSq / (w*h);
+  return sumSq / (w * h);
 }
 
 function computeRegionAverage(imageData, x, y, w, h) {
   const { width, data } = imageData;
-  let sumR=0, sumG=0, sumB=0;
-  for (let row=0; row<h; row++) {
-    for (let col=0; col<w; col++) {
-      const idx = ((y+row)*width + (x+col))*4;
+  let sumR = 0, sumG = 0, sumB = 0;
+
+  for (let row = 0; row < h; row++) {
+    for (let col = 0; col < w; col++) {
+      const idx = ((y + row) * width + (x + col)) * 4;
       sumR += data[idx];
-      sumG += data[idx+1];
-      sumB += data[idx+2];
+      sumG += data[idx + 1];
+      sumB += data[idx + 2];
     }
   }
-  const area = w*h;
+  const area = w * h;
   const r = Math.floor(sumR / area);
   const g = Math.floor(sumG / area);
   const b = Math.floor(sumB / area);
@@ -713,79 +827,21 @@ function computeRegionAverage(imageData, x, y, w, h) {
 
 function drawQuadTreeLeaves(ctx, node) {
   if (node.isLeaf) {
+    // Fill region with average color
     ctx.fillStyle = `rgba(${node.avgColor[0]}, ${node.avgColor[1]}, ${node.avgColor[2]}, 1)`;
     ctx.fillRect(node.x, node.y, node.w, node.h);
   } else {
-    for (let child of node.children) {
+    // Recursively draw children
+    for (const child of node.children) {
       drawQuadTreeLeaves(ctx, child);
     }
   }
 }
 
 /***********************************************
- * Macro12: BezierY wave
- ***********************************************/
-function applyBezierY() {
-  const canvas = document.getElementById("canvas");
-  if (!canvas.dataset.originalSrc) return;
-  const intensity = parseInt(document.getElementById("bezierIntensity").value, 10) || 25;
-
-  const ctx = canvas.getContext("2d");
-  const img = new Image();
-  img.src = canvas.dataset.originalSrc;
-
-  img.onload = () => {
-    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-    const data = imageData.data;
-    const w = canvas.width, h = canvas.height;
-
-    for (let x = 0; x < w; x++) {
-      const shift = Math.floor(intensity * Math.sin(x * 0.02));
-      if (shift) {
-        const colSlice = new Uint8ClampedArray(h * 4);
-        // Extract column
-        for (let y=0; y<h; y++) {
-          const idx = (y*w + x)*4;
-          const cIdx = y*4;
-          colSlice[cIdx]   = data[idx];
-          colSlice[cIdx+1] = data[idx+1];
-          colSlice[cIdx+2] = data[idx+2];
-          colSlice[cIdx+3] = data[idx+3];
-        }
-        // Shift
-        const newCol = new Uint8ClampedArray(colSlice.length);
-        for (let y=0; y<h; y++) {
-          const dstY = y + shift;
-          if (dstY>=0 && dstY<h) {
-            const srcIdx = y*4;
-            const dstIdx = dstY*4;
-            newCol[dstIdx]   = colSlice[srcIdx];
-            newCol[dstIdx+1] = colSlice[srcIdx+1];
-            newCol[dstIdx+2] = colSlice[srcIdx+2];
-            newCol[dstIdx+3] = colSlice[srcIdx+3];
-          }
-        }
-        // Put back
-        for (let y=0; y<h; y++) {
-          const idx = (y*w + x)*4;
-          data[idx]   = newCol[y*4];
-          data[idx+1] = newCol[y*4+1];
-          data[idx+2] = newCol[y*4+2];
-          data[idx+3] = newCol[y*4+3];
-        }
-      }
-    }
-    ctx.putImageData(imageData, 0, 0);
-    pushState(canvas.toDataURL());
-  };
-}
-
-/***********************************************
  * MACROS 13 - 25: Placeholders
  ***********************************************/
 function placeholderMacro(macroNumber) {
-  // Just draw some label on top
   const canvas = document.getElementById("canvas");
   if (!canvas.dataset.originalSrc) return;
   const ctx = canvas.getContext("2d");
@@ -851,6 +907,8 @@ document.getElementById("macro11").addEventListener("click", () => {
   document.getElementById("macroName").textContent = "QuadTree Fill";
   applyQuadTree();
 });
+
+// Macro 12: Bezier Y Wave
 document.getElementById("macro12").addEventListener("click", () => {
   document.getElementById("macroName").textContent = "Bezier Y Wave";
   applyBezierY();
@@ -858,12 +916,69 @@ document.getElementById("macro12").addEventListener("click", () => {
 
 // Macros 13 - 25 => placeholders
 for (let m = 13; m <= 25; m++) {
-  document
-    .getElementById(`macro${m}`)
-    .addEventListener("click", () => {
-      document.getElementById("macroName").textContent = `Macro ${m} (Placeholder)`;
-      placeholderMacro(m);
-    });
+  document.getElementById(`macro${m}`).addEventListener("click", () => {
+    document.getElementById("macroName").textContent = `Macro ${m} (Placeholder)`;
+    placeholderMacro(m);
+  });
+}
+
+/***********************************************
+ * Y-axis Bezier (Macro12)
+ ***********************************************/
+function applyBezierY() {
+  const canvas = document.getElementById("canvas");
+  if (!canvas.dataset.originalSrc) return;
+  const intensity = parseInt(document.getElementById("bezierIntensity").value, 10) || 25;
+
+  const ctx = canvas.getContext("2d");
+  const img = new Image();
+  img.src = canvas.dataset.originalSrc;
+
+  img.onload = () => {
+    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const data = imageData.data;
+    const w = canvas.width, h = canvas.height;
+
+    for (let x = 0; x < w; x++) {
+      const shift = Math.floor(intensity * Math.sin(x * 0.02));
+      if (shift) {
+        const colSlice = new Uint8ClampedArray(h * 4);
+        // Extract column
+        for (let y=0; y<h; y++) {
+          const idx = (y*w + x)*4;
+          const cIdx = y*4;
+          colSlice[cIdx]   = data[idx];
+          colSlice[cIdx+1] = data[idx+1];
+          colSlice[cIdx+2] = data[idx+2];
+          colSlice[cIdx+3] = data[idx+3];
+        }
+        // Shift
+        const newCol = new Uint8ClampedArray(colSlice.length);
+        for (let y=0; y<h; y++) {
+          const dstY = y + shift;
+          if (dstY>=0 && dstY<h) {
+            const srcIdx = y*4;
+            const dstIdx = dstY*4;
+            newCol[dstIdx]   = colSlice[srcIdx];
+            newCol[dstIdx+1] = colSlice[srcIdx+1];
+            newCol[dstIdx+2] = colSlice[srcIdx+2];
+            newCol[dstIdx+3] = colSlice[srcIdx+3];
+          }
+        }
+        // Put back
+        for (let y=0; y<h; y++) {
+          const idx = (y*w + x)*4;
+          data[idx]   = newCol[y*4];
+          data[idx+1] = newCol[y*4+1];
+          data[idx+2] = newCol[y*4+2];
+          data[idx+3] = newCol[y*4+3];
+        }
+      }
+    }
+    ctx.putImageData(imageData, 0, 0);
+    pushState(canvas.toDataURL());
+  };
 }
 
 /***********************************************
@@ -943,13 +1058,13 @@ edgeModSlider.addEventListener("input", () => {
   edgeModVal.textContent = edgeModSlider.value;
 });
 
-// Combined "Process" button (placeholder)
+// Combined "Process" button (placeholder) – purely an example
 document.getElementById("processBtn").addEventListener("click", () => {
-  const primeValNum = parseInt(primeOffset.value, 10);
-  const bezValNum = parseInt(bezierIntensity.value, 10);
-  const quadVal = parseInt(quadDepthSlider.value, 10);
-  const edgeVal = parseInt(edgeModSlider.value, 10);
-  const colorCheck = document.getElementById("colorShift").checked;
+  const primeValNum   = parseInt(primeOffset.value, 10);
+  const bezValNum     = parseInt(bezierIntensity.value, 10);
+  const quadVal       = parseInt(quadDepthSlider.value, 10);
+  const edgeVal       = parseInt(edgeModSlider.value, 10);
+  const colorCheck    = document.getElementById("colorShift").checked;
 
   alert(`Process with:
     primeOffset=${primeValNum},
