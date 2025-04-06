@@ -709,6 +709,10 @@ function applyDoubling() {
     ctx.putImageData(imageData, 0, 0);
     pushState(canvas.toDataURL());
   };
+
+
+
+
 }
 
 /***********************************************
@@ -838,13 +842,14 @@ function drawQuadTreeLeaves(ctx, node) {
   }
 }
 
-
 /***********************************************
  * Bayesian Edge Detection (Macro #13)
  * Applies probabilistic edge detection using Bayesian principles
  ***********************************************/
 
 function applyBayesianEdgeDetection() {
+  console.log("Bayesian Edge Detection started");
+  
   const canvas = document.getElementById("canvas");
   if (!canvas.dataset.originalSrc) return;
 
@@ -853,6 +858,9 @@ function applyBayesianEdgeDetection() {
   const noiseLevel = parseFloat(document.getElementById("bayesNoiseLevel").value);
   const edgeContinuity = parseFloat(document.getElementById("bayesEdgeContinuity").value) / 100;
   const minProbability = parseFloat(document.getElementById("bayesThreshold").value) / 100;
+  const visualizeProbMap = document.getElementById("bayesVisualizeProb")?.checked ?? true;
+
+  console.log("Parameters loaded:", { priorStrength, noiseLevel, edgeContinuity, minProbability, visualizeProbMap });
 
   const ctx = canvas.getContext("2d");
   const img = new Image();
@@ -896,11 +904,13 @@ function applyBayesianEdgeDetection() {
     );
 
     // Step 8: Create output visualization (probability map or thresholded edges)
-    const outData = visualizeResults(refinedMap, minProbability, width, height);
+    const outData = visualizeResults(refinedMap, minProbability, width, height, visualizeProbMap);
     ctx.putImageData(outData, 0, 0);
 
     // Update state
     pushState(canvas.toDataURL());
+    
+    console.log("Bayesian Edge Detection completed");
   };
 }
 
@@ -933,7 +943,13 @@ function computeGradients(gray, width, height) {
   }
   
   // Normalize gradient magnitude to [0,1]
-  const maxGrad = Math.max(...gradientMagnitude);
+  let maxGrad = 0;
+  for (let i = 0; i < gradientMagnitude.length; i++) {
+    if (gradientMagnitude[i] > maxGrad) {
+      maxGrad = gradientMagnitude[i];
+    }
+  }
+  
   if (maxGrad > 0) {
     for (let i = 0; i < gradientMagnitude.length; i++) {
       gradientMagnitude[i] /= maxGrad;
@@ -990,7 +1006,13 @@ function computeBayesianPosterior(likelihoodMap, priorMap, width, height) {
   }
   
   // Normalize to [0,1]
-  const maxVal = Math.max(...posteriorMap);
+  let maxVal = 0;
+  for (let i = 0; i < posteriorMap.length; i++) {
+    if (posteriorMap[i] > maxVal) {
+      maxVal = posteriorMap[i];
+    }
+  }
+  
   if (maxVal > 0) {
     for (let i = 0; i < posteriorMap.length; i++) {
       posteriorMap[i] /= maxVal;
@@ -1046,7 +1068,7 @@ function applyEdgeContinuityConstraints(posteriorMap, gradientDirection, width, 
 /**
  * Create visualization of the results
  */
-function visualizeResults(probabilityMap, threshold, width, height) {
+function visualizeResults(probabilityMap, threshold, width, height, showProbMap = true) {
   const outData = new ImageData(width, height);
   
   for (let i = 0; i < probabilityMap.length; i++) {
@@ -1054,60 +1076,100 @@ function visualizeResults(probabilityMap, threshold, width, height) {
     const idx = i * 4;
     
     if (prob >= threshold) {
-      // Edge pixel - use a thermal color map (red-yellow-white)
-      const intensity = Math.min(1, (prob - threshold) / (1 - threshold));
-      outData.data[idx]   = 255;  // R
-      outData.data[idx+1] = Math.floor(255 * intensity);  // G
-      outData.data[idx+2] = Math.floor(255 * Math.pow(intensity, 2));  // B
-      outData.data[idx+3] = 255;  // Alpha
+      if (showProbMap) {
+        // Enhanced thermal color map with better contrast
+        const intensity = Math.min(1, (prob - threshold) / (1 - threshold));
+        // More vibrant colors for better visibility
+        outData.data[idx]   = 255;  // R - Always bright red base
+        outData.data[idx+1] = Math.floor(255 * Math.pow(intensity, 0.7));  // G - Faster rise
+        outData.data[idx+2] = Math.floor(255 * Math.pow(intensity, 3));    // B - Slower rise
+        outData.data[idx+3] = 255;  // Alpha
+      } else {
+        // Binary edge visualization - white edges on black
+        outData.data[idx]   = 255;  // White
+        outData.data[idx+1] = 255;
+        outData.data[idx+2] = 255;
+        outData.data[idx+3] = 255;
+      }
     } else {
-      // Non-edge pixel - dark blue gradient
-      const darkBlue = Math.floor(prob * 80);
-      outData.data[idx]   = 0;  // R
-      outData.data[idx+1] = 0;  // G
-      outData.data[idx+2] = darkBlue;  // B
-      outData.data[idx+3] = 255;  // Alpha
+      if (showProbMap) {
+        // Non-edge pixel - improved dark blue gradient with better contrast
+        const blueIntensity = Math.floor(prob * 120); // Increased from 80 to 120
+        outData.data[idx]   = 0;
+        outData.data[idx+1] = 0;
+        outData.data[idx+2] = blueIntensity;
+        outData.data[idx+3] = 255;
+      } else {
+        // Binary edge visualization - black background
+        outData.data[idx]   = 0;
+        outData.data[idx+1] = 0;
+        outData.data[idx+2] = 0;
+        outData.data[idx+3] = 255;
+      }
     }
   }
   
   return outData;
 }
 
-/**
- * Gaussian blur implementation (5x5 kernel)
- */
-function gaussianBlur(gray, width, height) {
-  const out = new Float32Array(width * height);
-  const kernel = [1, 4, 6, 4, 1];
-  const kSum = 16;
-  const temp = new Float32Array(width * height);
+/***********************************************
+ * Y-axis Bezier (Macro12)
+ ***********************************************/
+function applyBezierY() {
+  const canvas = document.getElementById("canvas");
+  if (!canvas.dataset.originalSrc) return;
+  const intensity = parseInt(document.getElementById("bezierIntensity").value, 10) || 25;
 
-  // Horizontal pass
-  for (let y = 0; y < height; y++) {
-    for (let x = 2; x < width-2; x++) {
-      let val = 0;
-      for (let k = -2; k <= 2; k++) {
-        val += kernel[k+2] * gray[y*width + (x+k)];
-      }
-      temp[y*width + x] = val / kSum;
-    }
-  }
+  const ctx = canvas.getContext("2d");
+  const img = new Image();
+  img.src = canvas.dataset.originalSrc;
 
-  // Vertical pass
-  for (let y = 2; y < height-2; y++) {
-    for (let x = 0; x < width; x++) {
-      let val = 0;
-      for (let k = -2; k <= 2; k++) {
-        val += kernel[k+2] * temp[(y+k)*width + x];
+  img.onload = () => {
+    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const data = imageData.data;
+    const w = canvas.width, h = canvas.height;
+
+    for (let x = 0; x < w; x++) {
+      const shift = Math.floor(intensity * Math.sin(x * 0.02));
+      if (shift) {
+        const colSlice = new Uint8ClampedArray(h * 4);
+        // Extract column
+        for (let y=0; y<h; y++) {
+          const idx = (y*w + x)*4;
+          const cIdx = y*4;
+          colSlice[cIdx]   = data[idx];
+          colSlice[cIdx+1] = data[idx+1];
+          colSlice[cIdx+2] = data[idx+2];
+          colSlice[cIdx+3] = data[idx+3];
+        }
+        // Shift
+        const newCol = new Uint8ClampedArray(colSlice.length);
+        for (let y=0; y<h; y++) {
+          const dstY = y + shift;
+          if (dstY>=0 && dstY<h) {
+            const srcIdx = y*4;
+            const dstIdx = dstY*4;
+            newCol[dstIdx]   = colSlice[srcIdx];
+            newCol[dstIdx+1] = colSlice[srcIdx+1];
+            newCol[dstIdx+2] = colSlice[srcIdx+2];
+            newCol[dstIdx+3] = colSlice[srcIdx+3];
+          }
+        }
+        // Put back
+        for (let y=0; y<h; y++) {
+          const idx = (y*w + x)*4;
+          data[idx]   = newCol[y*4];
+          data[idx+1] = newCol[y*4+1];
+          data[idx+2] = newCol[y*4+2];
+          data[idx+3] = newCol[y*4+3];
+        }
       }
-      out[y*width + x] = val / kSum;
     }
-  }
-  
-  return out;
+    ctx.putImageData(imageData, 0, 0);
+    pushState(canvas.toDataURL());
+  };
 }
-
-
 
 /***********************************************
  * MACROS 14 - 25: Placeholders
@@ -1185,7 +1247,7 @@ document.getElementById("macro12").addEventListener("click", () => {
   applyBezierY();
 });
 
-// MAcro 13
+// Macro 13: Bayesian Edge Detection
 document.getElementById("macro13").addEventListener("click", () => {
   document.getElementById("macroName").textContent = "Bayesian Edge Detection";
   applyBayesianEdgeDetection();
@@ -1197,65 +1259,6 @@ for (let m = 14; m <= 25; m++) {
     document.getElementById("macroName").textContent = `Macro ${m} (Placeholder)`;
     placeholderMacro(m);
   });
-}
-
-/***********************************************
- * Y-axis Bezier (Macro12)
- ***********************************************/
-function applyBezierY() {
-  const canvas = document.getElementById("canvas");
-  if (!canvas.dataset.originalSrc) return;
-  const intensity = parseInt(document.getElementById("bezierIntensity").value, 10) || 25;
-
-  const ctx = canvas.getContext("2d");
-  const img = new Image();
-  img.src = canvas.dataset.originalSrc;
-
-  img.onload = () => {
-    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-    const data = imageData.data;
-    const w = canvas.width, h = canvas.height;
-
-    for (let x = 0; x < w; x++) {
-      const shift = Math.floor(intensity * Math.sin(x * 0.02));
-      if (shift) {
-        const colSlice = new Uint8ClampedArray(h * 4);
-        // Extract column
-        for (let y=0; y<h; y++) {
-          const idx = (y*w + x)*4;
-          const cIdx = y*4;
-          colSlice[cIdx]   = data[idx];
-          colSlice[cIdx+1] = data[idx+1];
-          colSlice[cIdx+2] = data[idx+2];
-          colSlice[cIdx+3] = data[idx+3];
-        }
-        // Shift
-        const newCol = new Uint8ClampedArray(colSlice.length);
-        for (let y=0; y<h; y++) {
-          const dstY = y + shift;
-          if (dstY>=0 && dstY<h) {
-            const srcIdx = y*4;
-            const dstIdx = dstY*4;
-            newCol[dstIdx]   = colSlice[srcIdx];
-            newCol[dstIdx+1] = colSlice[srcIdx+1];
-            newCol[dstIdx+2] = colSlice[srcIdx+2];
-            newCol[dstIdx+3] = colSlice[srcIdx+3];
-          }
-        }
-        // Put back
-        for (let y=0; y<h; y++) {
-          const idx = (y*w + x)*4;
-          data[idx]   = newCol[y*4];
-          data[idx+1] = newCol[y*4+1];
-          data[idx+2] = newCol[y*4+2];
-          data[idx+3] = newCol[y*4+3];
-        }
-      }
-    }
-    ctx.putImageData(imageData, 0, 0);
-    pushState(canvas.toDataURL());
-  };
 }
 
 /***********************************************
@@ -1335,7 +1338,7 @@ edgeModSlider.addEventListener("input", () => {
   edgeModVal.textContent = edgeModSlider.value;
 });
 
-// Slider event listeners (add to script.js)
+// Slider event listeners for Bayesian Edge Detection
 const bayesPriorSlider = document.getElementById("bayesPriorStrength");
 const bayesPriorVal = document.getElementById("bayesPriorVal");
 bayesPriorSlider.addEventListener("input", () => {
@@ -1359,11 +1362,6 @@ const bayesThresholdVal = document.getElementById("bayesThresholdVal");
 bayesThresholdSlider.addEventListener("input", () => {
   bayesThresholdVal.textContent = bayesThresholdSlider.value;
 });
-
-
-
-
-
 
 // Combined "Process" button (placeholder) – purely an example
 document.getElementById("processBtn").addEventListener("click", () => {
