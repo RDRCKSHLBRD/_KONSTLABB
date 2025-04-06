@@ -117,6 +117,15 @@
 
     <!-- Right Sidebar with Advanced Controls -->
     <aside class="sidebar">
+      <!-- Tools panel (Axis overlay, etc.) -->
+      <div class="toolDisplay">
+        <label for="toggleAxisOverlay">
+          <div class="toolTitle">Tools</div>
+          <input type="checkbox" id="toggleAxisOverlay" unchecked />
+          X/Y
+        </label>
+      </div>
+
       <details open>
         <summary>Advanced Controls</summary>
         <div class="controls-content">
@@ -172,14 +181,7 @@
         </div>
       </details>
 
-      <!-- Tools panel (Axis overlay, etc.) -->
-      <div class="toolDisplay">
-        <label for="toggleAxisOverlay">
-          <div class="toolTitle">Tools</div>
-          <input type="checkbox" id="toggleAxisOverlay" checked />
-          X/Y
-        </label>
-      </div>
+      
 
       <!-- Region results from EdgeDetect -->
       <details id="regionDetails" style="display: none;">

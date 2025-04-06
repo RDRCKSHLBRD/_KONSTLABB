@@ -342,8 +342,9 @@ canvas,
 }
 
 .toolDisplay {
+  text-align: left;
   border: 1px solid gray;
-  padding: 1em;
+  padding: .5em;
   margin: 0.5em 0;
 }
 
