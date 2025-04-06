@@ -445,6 +445,11 @@ label[for="minArea"] {
   background: rgba(255, 255, 255, 0.1);
 }
 
+#bayesianControls { 
+  border-color: #48B1D8; 
+  background: rgba(72, 177, 216, 0.05);
+}
+
 /* RESPONSIVE FOR MOBILE */
 @media (max-width: 768px) {
   header {

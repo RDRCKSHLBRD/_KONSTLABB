@@ -1,11 +1,13 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>KONSTLABB</title>
   <link rel="stylesheet" href="style.css" />
 </head>
+
 <body>
   <!-- Header Section -->
   <header>
@@ -65,7 +67,7 @@
           <button id="macro10">Double</button>
           <button id="macro11">QuadTree</button>
           <button id="macro12">BezierY</button>
-          <button id="macro13">13</button>
+          <button id="macro13">BayesEdge</button>
           <button id="macro14">14</button>
           <button id="macro15">15</button>
           <button id="macro16">16</button>
@@ -98,20 +100,8 @@
       </div>
 
       <!-- Our SVG container for vector mode -->
-      <svg
-        id="svgContainer"
-        width="800"
-        height="800"
-        viewBox="0 0 800 800"
-        style="display: none;"
-      >
-        <path
-          id="svgPath"
-          d="M 100 400 Q 400 100 700 400 T 1300 400"
-          stroke="white"
-          fill="none"
-          stroke-width="2"
-        />
+      <svg id="svgContainer" width="800" height="800" viewBox="0 0 800 800" style="display: none;">
+        <path id="svgPath" d="M 100 400 Q 400 100 700 400 T 1300 400" stroke="white" fill="none" stroke-width="2" />
       </svg>
     </div>
 
@@ -179,9 +169,28 @@
             <input type="checkbox" id="colorShift" />
           </div>
         </div>
+        <!-- Bayesian Edge Detection Controls -->
+        <div class="macro-section" id="bayesianControls">
+          <label for="bayesPriorStrength">Prior Strength: <span id="bayesPriorVal">50</span>%</label>
+          <input type="range" id="bayesPriorStrength" min="0" max="100" value="50" />
+
+          <label for="bayesNoiseLevel">Noise Level: <span id="bayesNoiseVal">5</span></label>
+          <input type="range" id="bayesNoiseLevel" min="1" max="20" value="5" />
+
+          <label for="bayesEdgeContinuity">Edge Continuity: <span id="bayesContinuityVal">70</span>%</label>
+          <input type="range" id="bayesEdgeContinuity" min="0" max="100" value="70" />
+
+          <label for="bayesThreshold">Probability Threshold: <span id="bayesThresholdVal">40</span>%</label>
+          <input type="range" id="bayesThreshold" min="0" max="100" value="40" />
+
+          <label>
+            <input type="checkbox" id="bayesVisualizeProb" checked />
+            Visualize Probability Map
+          </label>
+        </div>
       </details>
 
-      
+
 
       <!-- Region results from EdgeDetect -->
       <details id="regionDetails" style="display: none;">
@@ -202,4 +211,5 @@
   <!-- Main Script -->
   <script src="script.js"></script>
 </body>
+
 </html>

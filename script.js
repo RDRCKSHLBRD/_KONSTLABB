@@ -838,8 +838,279 @@ function drawQuadTreeLeaves(ctx, node) {
   }
 }
 
+
 /***********************************************
- * MACROS 13 - 25: Placeholders
+ * Bayesian Edge Detection (Macro #13)
+ * Applies probabilistic edge detection using Bayesian principles
+ ***********************************************/
+
+function applyBayesianEdgeDetection() {
+  const canvas = document.getElementById("canvas");
+  if (!canvas.dataset.originalSrc) return;
+
+  // Get parameters from controls
+  const priorStrength = parseFloat(document.getElementById("bayesPriorStrength").value) / 100;
+  const noiseLevel = parseFloat(document.getElementById("bayesNoiseLevel").value);
+  const edgeContinuity = parseFloat(document.getElementById("bayesEdgeContinuity").value) / 100;
+  const minProbability = parseFloat(document.getElementById("bayesThreshold").value) / 100;
+
+  const ctx = canvas.getContext("2d");
+  const img = new Image();
+  img.src = canvas.dataset.originalSrc;
+
+  img.onload = () => {
+    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+    const { width, height } = canvas;
+    const imageData = ctx.getImageData(0, 0, width, height);
+
+    // Step 1: Convert to grayscale
+    const gray = new Float32Array(width * height);
+    const d = imageData.data;
+    for (let i = 0; i < d.length; i += 4) {
+      const r = d[i], g = d[i+1], b = d[i+2];
+      gray[i / 4] = 0.299*r + 0.587*g + 0.114*b;
+    }
+
+    // Step 2: Apply Gaussian blur to reduce noise
+    const blurredGray = gaussianBlur(gray, width, height);
+
+    // Step 3: Compute gradients (likelihood of edges)
+    const { gradientMagnitude, gradientDirection } = computeGradients(blurredGray, width, height);
+
+    // Step 4: Create prior probability map for edges
+    const priorMap = createEdgePriorMap(gradientMagnitude, width, height, priorStrength);
+
+    // Step 5: Compute likelihood P(image|edge) using gradient and noise model
+    const likelihoodMap = computeEdgeLikelihood(gradientMagnitude, noiseLevel, width, height);
+
+    // Step 6: Apply Bayes' theorem to get posterior edge probabilities
+    const posteriorMap = computeBayesianPosterior(likelihoodMap, priorMap, width, height);
+
+    // Step 7: Apply edge continuity constraints (MRF-like smoothing)
+    const refinedMap = applyEdgeContinuityConstraints(
+      posteriorMap, 
+      gradientDirection, 
+      width, 
+      height, 
+      edgeContinuity
+    );
+
+    // Step 8: Create output visualization (probability map or thresholded edges)
+    const outData = visualizeResults(refinedMap, minProbability, width, height);
+    ctx.putImageData(outData, 0, 0);
+
+    // Update state
+    pushState(canvas.toDataURL());
+  };
+}
+
+/**
+ * Compute image gradients using Sobel operators
+ */
+function computeGradients(gray, width, height) {
+  const gradientMagnitude = new Float32Array(width * height);
+  const gradientDirection = new Float32Array(width * height);
+  
+  // Sobel kernels
+  const kx = [[-1,0,1],[-2,0,2],[-1,0,1]];
+  const ky = [[-1,-2,-1],[0,0,0],[1,2,1]];
+  
+  for (let y = 1; y < height-1; y++) {
+    for (let x = 1; x < width-1; x++) {
+      let gx = 0, gy = 0;
+      for (let yy = -1; yy <= 1; yy++) {
+        for (let xx = -1; xx <= 1; xx++) {
+          const val = gray[(y+yy)*width + (x+xx)];
+          gx += kx[yy+1][xx+1] * val;
+          gy += ky[yy+1][xx+1] * val;
+        }
+      }
+      
+      const idx = y*width + x;
+      gradientMagnitude[idx] = Math.sqrt(gx*gx + gy*gy);
+      gradientDirection[idx] = Math.atan2(gy, gx);
+    }
+  }
+  
+  // Normalize gradient magnitude to [0,1]
+  const maxGrad = Math.max(...gradientMagnitude);
+  if (maxGrad > 0) {
+    for (let i = 0; i < gradientMagnitude.length; i++) {
+      gradientMagnitude[i] /= maxGrad;
+    }
+  }
+  
+  return { gradientMagnitude, gradientDirection };
+}
+
+/**
+ * Create edge prior probability map
+ */
+function createEdgePriorMap(gradientMagnitude, width, height, priorStrength) {
+  const priorMap = new Float32Array(width * height);
+  
+  // Base prior probability (chance of any pixel being an edge)
+  const basePrior = 0.1 + (priorStrength * 0.4); // Range: 0.1 to 0.5
+  
+  for (let i = 0; i < priorMap.length; i++) {
+    // Weighted mixture of uniform prior and gradient-influenced prior
+    priorMap[i] = (1 - priorStrength) * basePrior + 
+                  priorStrength * gradientMagnitude[i];
+  }
+  
+  return priorMap;
+}
+
+/**
+ * Compute edge likelihood based on gradient and noise model
+ */
+function computeEdgeLikelihood(gradientMagnitude, noiseLevel, width, height) {
+  const likelihoodMap = new Float32Array(width * height);
+  const sigma = 0.1 + (noiseLevel / 25); // Convert noise parameter to sigma
+  
+  for (let i = 0; i < gradientMagnitude.length; i++) {
+    // Higher gradients have higher likelihood of being edges
+    // We model this as a sigmoid function
+    const gradient = gradientMagnitude[i];
+    likelihoodMap[i] = 1 / (1 + Math.exp(-(gradient - 0.5) / sigma));
+  }
+  
+  return likelihoodMap;
+}
+
+/**
+ * Apply Bayes' theorem: P(edge|image) = P(image|edge) * P(edge) / P(image)
+ */
+function computeBayesianPosterior(likelihoodMap, priorMap, width, height) {
+  const posteriorMap = new Float32Array(width * height);
+  
+  // Evidence P(image) is a normalizing constant, we'll normalize at the end
+  for (let i = 0; i < posteriorMap.length; i++) {
+    posteriorMap[i] = likelihoodMap[i] * priorMap[i];
+  }
+  
+  // Normalize to [0,1]
+  const maxVal = Math.max(...posteriorMap);
+  if (maxVal > 0) {
+    for (let i = 0; i < posteriorMap.length; i++) {
+      posteriorMap[i] /= maxVal;
+    }
+  }
+  
+  return posteriorMap;
+}
+
+/**
+ * Apply edge continuity constraints (similar to Markov Random Field refinement)
+ */
+function applyEdgeContinuityConstraints(posteriorMap, gradientDirection, width, height, continuityWeight) {
+  const refinedMap = new Float32Array(width * height);
+  
+  // First copy the original values
+  for (let i = 0; i < posteriorMap.length; i++) {
+    refinedMap[i] = posteriorMap[i];
+  }
+  
+  // Apply continuity constraints by smoothing along the edge direction
+  for (let y = 2; y < height-2; y++) {
+    for (let x = 2; x < width-2; x++) {
+      const idx = y * width + x;
+      const direction = gradientDirection[idx];
+      
+      // Get coordinates of 2 pixels along the edge direction
+      const dx = Math.cos(direction);
+      const dy = Math.sin(direction);
+      
+      const x1 = Math.round(x + dx);
+      const y1 = Math.round(y + dy);
+      const x2 = Math.round(x - dx);
+      const y2 = Math.round(y - dy);
+      
+      // Check bounds
+      if (x1 >= 0 && x1 < width && y1 >= 0 && y1 < height &&
+          x2 >= 0 && x2 < width && y2 >= 0 && y2 < height) {
+        
+        const idx1 = y1 * width + x1;
+        const idx2 = y2 * width + x2;
+        
+        // Weighted average with neighbors along the edge direction
+        refinedMap[idx] = (1 - continuityWeight) * posteriorMap[idx] + 
+                          continuityWeight * (posteriorMap[idx1] + posteriorMap[idx2]) / 2;
+      }
+    }
+  }
+  
+  return refinedMap;
+}
+
+/**
+ * Create visualization of the results
+ */
+function visualizeResults(probabilityMap, threshold, width, height) {
+  const outData = new ImageData(width, height);
+  
+  for (let i = 0; i < probabilityMap.length; i++) {
+    const prob = probabilityMap[i];
+    const idx = i * 4;
+    
+    if (prob >= threshold) {
+      // Edge pixel - use a thermal color map (red-yellow-white)
+      const intensity = Math.min(1, (prob - threshold) / (1 - threshold));
+      outData.data[idx]   = 255;  // R
+      outData.data[idx+1] = Math.floor(255 * intensity);  // G
+      outData.data[idx+2] = Math.floor(255 * Math.pow(intensity, 2));  // B
+      outData.data[idx+3] = 255;  // Alpha
+    } else {
+      // Non-edge pixel - dark blue gradient
+      const darkBlue = Math.floor(prob * 80);
+      outData.data[idx]   = 0;  // R
+      outData.data[idx+1] = 0;  // G
+      outData.data[idx+2] = darkBlue;  // B
+      outData.data[idx+3] = 255;  // Alpha
+    }
+  }
+  
+  return outData;
+}
+
+/**
+ * Gaussian blur implementation (5x5 kernel)
+ */
+function gaussianBlur(gray, width, height) {
+  const out = new Float32Array(width * height);
+  const kernel = [1, 4, 6, 4, 1];
+  const kSum = 16;
+  const temp = new Float32Array(width * height);
+
+  // Horizontal pass
+  for (let y = 0; y < height; y++) {
+    for (let x = 2; x < width-2; x++) {
+      let val = 0;
+      for (let k = -2; k <= 2; k++) {
+        val += kernel[k+2] * gray[y*width + (x+k)];
+      }
+      temp[y*width + x] = val / kSum;
+    }
+  }
+
+  // Vertical pass
+  for (let y = 2; y < height-2; y++) {
+    for (let x = 0; x < width; x++) {
+      let val = 0;
+      for (let k = -2; k <= 2; k++) {
+        val += kernel[k+2] * temp[(y+k)*width + x];
+      }
+      out[y*width + x] = val / kSum;
+    }
+  }
+  
+  return out;
+}
+
+
+
+/***********************************************
+ * MACROS 14 - 25: Placeholders
  ***********************************************/
 function placeholderMacro(macroNumber) {
   const canvas = document.getElementById("canvas");
@@ -914,8 +1185,14 @@ document.getElementById("macro12").addEventListener("click", () => {
   applyBezierY();
 });
 
-// Macros 13 - 25 => placeholders
-for (let m = 13; m <= 25; m++) {
+// MAcro 13
+document.getElementById("macro13").addEventListener("click", () => {
+  document.getElementById("macroName").textContent = "Bayesian Edge Detection";
+  applyBayesianEdgeDetection();
+});
+
+// Macros 14 - 25 => placeholders
+for (let m = 14; m <= 25; m++) {
   document.getElementById(`macro${m}`).addEventListener("click", () => {
     document.getElementById("macroName").textContent = `Macro ${m} (Placeholder)`;
     placeholderMacro(m);
@@ -1057,6 +1334,36 @@ const edgeModVal = document.getElementById("edgeModVal");
 edgeModSlider.addEventListener("input", () => {
   edgeModVal.textContent = edgeModSlider.value;
 });
+
+// Slider event listeners (add to script.js)
+const bayesPriorSlider = document.getElementById("bayesPriorStrength");
+const bayesPriorVal = document.getElementById("bayesPriorVal");
+bayesPriorSlider.addEventListener("input", () => {
+  bayesPriorVal.textContent = bayesPriorSlider.value;
+});
+
+const bayesNoiseSlider = document.getElementById("bayesNoiseLevel");
+const bayesNoiseVal = document.getElementById("bayesNoiseVal");
+bayesNoiseSlider.addEventListener("input", () => {
+  bayesNoiseVal.textContent = bayesNoiseSlider.value;
+});
+
+const bayesContinuitySlider = document.getElementById("bayesEdgeContinuity");
+const bayesContinuityVal = document.getElementById("bayesContinuityVal");
+bayesContinuitySlider.addEventListener("input", () => {
+  bayesContinuityVal.textContent = bayesContinuitySlider.value;
+});
+
+const bayesThresholdSlider = document.getElementById("bayesThreshold");
+const bayesThresholdVal = document.getElementById("bayesThresholdVal");
+bayesThresholdSlider.addEventListener("input", () => {
+  bayesThresholdVal.textContent = bayesThresholdSlider.value;
+});
+
+
+
+
+
 
 // Combined "Process" button (placeholder) – purely an example
 document.getElementById("processBtn").addEventListener("click", () => {
